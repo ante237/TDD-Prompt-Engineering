@@ -1,10 +1,131 @@
 ==== Manually Written Test Cases ====
 
-[Add your manually written test cases here]
+def test_manual_1(self):
+    """Some artists may have no concerts on the list. In that case, that should be indicated in the itinerary."""
+    itinerary = self.builder.build_itinerary(self.all_concerts)
+    allArtists = []
+    listedArtists = []
+
+    #Get all artists
+    for i in range(len(self.all_concerts)):
+        if(self.all_concerts[i].artist not in allArtists):
+            allArtists.append(self.all_concerts[i].artist)
+    
+    #Get all artists from the itinerary
+    for j in range(len(itinerary)):
+        if(itinerary[j].artist not in listedArtists):
+            listedArtists.append(itinerary[j].artist)
+
+    #Sort both lists to ensure same order
+    sortedAllArtists = sorted(allArtists)
+    sortedListedArtists = sorted(listedArtists)
+
+    self.assertTrue(itinerary)
+    self.assertEqual(sortedAllArtists, sortedListedArtists)
+    
+
+def test_manual_2(self):
+    """The itinerary should return a list of concerts sorted in chronological order (by date from earliest to latest)"""
+    itinerary = self.builder.build_itinerary(self.all_concerts)
+    dateList = []
+
+    #Add all dates to list
+    for i in range(len(itinerary)):
+        if(itinerary[i].date != "No Concerts"):
+            dateList.append(datetime.fromisoformat(itinerary[i].date))
+
+    self.assertTrue(itinerary)
+    self.assertTrue(dateList == sorted(dateList))
+
+def test_manual_3(self):
+    """An artist has at most one concert in the itinerary. If an artist has more than one concert in the list, the itinerary should only include the one with the earliest start date."""
+    itinerary = self.builder.build_itinerary(self.all_concerts)
+    foundArtists = []
+    foundDupe = False
+    onlyFirstDate = True
+    concertDates = {}
+
+    #Sort all concert dates into dict, with artist as key
+    for c in self.all_concerts:
+        if(c.artist not in concertDates):
+            concertDates[c.artist] = [datetime.fromisoformat(c.date)]
+        else:
+            tmp = concertDates[c.artist]
+            tmp.append(datetime.fromisoformat(c.date))
+            concertDates[c.artist] = tmp
+
+    #Sort each date list
+    for key in concertDates:
+        concertDates[key] = sorted(concertDates[key])
+
+    for i in range(len(itinerary)):
+        #Check for duplicate artist entries
+        if(itinerary[i].artist in foundArtists):
+            foundDupe = True
+            break
+        #Check if the date matches the earliest concert of the artist
+        if(itinerary[i].date != "No Concerts"):
+            date = datetime.fromisoformat(itinerary[i].date)
+            if(date != concertDates[itinerary[i].artist][0]):
+                onlyFirstDate = False
+                break
+        foundArtists.append(itinerary[i])
+
+    self.assertTrue(itinerary)
+    self.assertTrue(onlyFirstDate)
+    self.assertFalse(foundDupe)
 
 
 
 ==== AI-Assisted Test Cases ====
 
-[Add your AI-generated test cases here]
+def test_ai_1(self):
+    """If multiple concerts are on the same day, include only the one closest to the previous concert."""
+    concerts = [
+        Concert("Artist A", "2025-05-08", "Gothenburg", 57.7089, 11.9746),  # First concert
+        Concert("Artist B", "2025-05-10", "Oslo", 59.9139, 10.7522),       # Closer
+        Concert("Artist C", "2025-05-10", "Stockholm", 59.3293, 18.0686)   # Further
+    ]
 
+    itinerary = self.builder.build_itinerary(concerts)
+
+    self.assertEqual(len(itinerary), 3)
+    self.assertEqual(itinerary[0].location, "Gothenburg")
+    self.assertEqual(itinerary[1].date, "2025-05-10")
+    self.assertEqual(itinerary[1].location, "Oslo")
+    self.assertEqual(itinerary[2].date, "No Concerts")
+
+def test_ai_2(self):
+    """Each concert in the itinerary should have artist, date, and location."""
+    concerts = [
+        Concert("Artist A", "2025-06-15", "Berlin", 52.52, 13.405)
+    ]
+    itinerary = self.builder.build_itinerary(concerts)
+
+    self.assertEqual(len(itinerary), 1)
+    concert = itinerary[0]
+    self.assertTrue(hasattr(concert, "artist"))
+    self.assertTrue(hasattr(concert, "date"))
+    self.assertTrue(hasattr(concert, "location"))
+
+def test_ai_3(self):
+    """Artists with only one concert should be prioritized over artists with multiple concerts."""
+    concerts = [
+        Concert("Multi A", "2025-05-12", "Paris", 48.8566, 2.3522),
+        Concert("Solo B", "2025-05-12", "Amsterdam", 52.3676, 4.9041),
+        Concert("Multi A", "2025-05-20", "Lyon", 45.75, 4.85)
+    ]
+    itinerary = self.builder.build_itinerary(concerts)
+
+    dates = [str(c.date) for c in itinerary]
+
+    self.assertEqual(dates.count("2025-05-12"), 1, "Only one concert should occur on 2025-05-12")
+    artist_names = [concert.artist for concert in itinerary]
+    self.assertIn("Solo B", artist_names)
+    # Solo artist should be prioritized
+    self.assertIn("Solo B", [c.artist for c in itinerary], "Solo B should be prioritized")
+    self.assertNotIn("Multi A", [c.artist for c in itinerary if str(c.date) == "2025-05-12"],
+                    "Multi A should not be selected on 2025-05-12")
+
+    # Optional: Check total number of concerts in itinerary (Solo B + Multi A on 2025-05-20)
+    self.assertEqual(len(itinerary), 2, "Itinerary should include Solo B and one later Multi A concert")
