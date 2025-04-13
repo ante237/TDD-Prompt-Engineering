@@ -64,7 +64,7 @@ The Concert Itinerary Builder must meet the following requirements:
 ### Setup
 
 1. Fork this repository to your local machine
-2. Install the required dependencies using `pip install -r requirements.txt`
+2. Install the required dependencies   using `pip install -r requirements.txt`
 3. Familiarize yourself with the codebase structure
 
 ## Project Structure
